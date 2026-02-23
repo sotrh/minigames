@@ -1,0 +1,16 @@
+[workspace]
+members = ["framework", "games/*"]
+resolver = "3"
+
+[workspace.dependencies]
+wgpu = "28.0"
+anyhow = "1"
+glam = { version = "0.30.9", features = ["bytemuck"] }
+bytemuck = { version = "1.13.1", features = ["derive"] }
+winit = { version = "0.30", features = ["android-native-activity"] }
+env_logger = "0.10"
+pollster = "0.3"
+image = "0.24.2"
+log = "0.4"
+tobj = { version = "3.2", default-features = false, features = ["async"] }
+web-time = "1"

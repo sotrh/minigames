@@ -49,10 +49,7 @@ impl Display {
     pub async fn new(window: Arc<Window>) -> anyhow::Result<Display> {
         let size = window.inner_size();
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
-            #[cfg(not(target_arch = "wasm32"))]
             backends: wgpu::Backends::PRIMARY,
-            #[cfg(target_arch = "wasm32")]
-            backends: wgpu::Backends::GL,
             ..Default::default()
         });
         let surface = instance.create_surface(window.clone()).unwrap();
@@ -318,7 +315,7 @@ impl<D: Demo + 'static> ApplicationHandler<anyhow::Result<(Display, D)>> for App
                 #[cfg(not(target_arch = "wasm32"))]
                 let res_dir = std::env::current_dir()?.join("res");
                 #[cfg(target_arch = "wasm32")]
-                let res_dir = PathBuf::new();
+                let res_dir = std::path::PathBuf::new();
 
                 let display = Display::new(window).await?;
                 let demo = D::init(&display, &res_dir).await?;

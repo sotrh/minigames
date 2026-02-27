@@ -1,12 +1,25 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sotrh's Minigames</title>
-    <link href="/styles.css" rel="stylesheet"/>
-</head>
-<body>
+    <link href="/styles.css" rel="stylesheet" />
+  </head>
+  <body>
     <canvas id="game"></canvas>
-</body>
+    <script type="module">
+      async function main() {
+        // import init from 
+        const gameName = window.location.hash.substring(1);
+        console.log(gameName);
+
+        const wasmModule = await import(`/target/games/${gameName}/demo.js`);
+        console.log(wasmModule);
+        await wasmModule.default(`/target/games/${gameName}/demo_bg.wasm`);
+      }
+
+      main();
+    </script>
+  </body>
 </html>

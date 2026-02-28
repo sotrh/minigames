@@ -5,6 +5,7 @@ mod camera;
 mod light;
 mod pipeline;
 mod shader_canvas;
+pub mod math;
 
 pub use buffer::*;
 pub use camera::*;

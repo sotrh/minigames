@@ -171,7 +171,7 @@ impl Texture {
 
         let data = Vec::with_capacity(num_pixels as usize);
 
-        let raw_buffer = buffer::RawBuffer::from_parts(buffer, data, buffer_usage);
+        let raw_buffer = buffer::RawBuffer::from_parts(buffer, data);
 
         raw_buffer
     }

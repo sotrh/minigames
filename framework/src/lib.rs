@@ -6,6 +6,7 @@ mod light;
 mod pipeline;
 mod shader_canvas;
 pub mod math;
+pub mod debug;
 
 pub use buffer::*;
 pub use camera::*;
@@ -24,6 +25,7 @@ use std::sync::Arc;
 
 pub use rand;
 pub use wgpu;
+pub use glam;
 
 use web_time::{Duration, Instant};
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
@@ -190,7 +192,7 @@ impl CameraUniform {
         Self { data, buffer }
     }
 
-    pub fn update_view_proj(&mut self, camera: &camera::Camera, projection: &camera::Projection) {
+    pub fn update_view_proj(&mut self, camera: &camera::FpCamera, projection: &camera::PerspectiveProjection) {
         self.data.view_position = camera.position.extend(1.0);
         self.data.view_proj = projection.calc_matrix() * camera.calc_matrix()
     }

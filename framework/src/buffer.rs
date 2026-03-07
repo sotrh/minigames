@@ -1,4 +1,4 @@
-use std::mem;
+use std::{any::type_name, mem};
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
 
 pub trait ToRaw {
@@ -6,6 +6,7 @@ pub trait ToRaw {
     fn to_raw(&self) -> Self::Output;
 }
 
+#[derive(Debug)]
 pub struct RawBuffer<R>
 where
     R: Copy + bytemuck::Pod + bytemuck::Zeroable,
@@ -15,6 +16,10 @@ where
 }
 
 impl<R: Copy + bytemuck::Pod + bytemuck::Zeroable> RawBuffer<R> {
+    pub fn from_parts(buffer: wgpu::Buffer, data: Vec<R>) -> Self {
+        Self { buffer, data }
+    }
+
     pub fn from_slice<T: ToRaw<Output = R>>(
         device: &wgpu::Device,
         data: &[T],
@@ -30,15 +35,32 @@ impl<R: Copy + bytemuck::Pod + bytemuck::Zeroable> RawBuffer<R> {
             usage,
             label: None,
         });
-        Self::from_parts(buffer, data, usage)
+        Self::from_parts(buffer, data)
     }
 
-    pub fn from_parts(buffer: wgpu::Buffer, data: Vec<R>, _usage: wgpu::BufferUsages) -> Self {
-        Self { buffer, data }
+    pub fn with_capacity(
+        device: &wgpu::Device,
+        capacity: usize,
+        usage: wgpu::BufferUsages,
+    ) -> Self {
+        let data = Vec::with_capacity(capacity);
+        let buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some(type_name::<Self>()),
+            size: (capacity * mem::size_of::<R>()) as _,
+            usage,
+            mapped_at_creation: false,
+        });
+
+        Self::from_parts(buffer, data)
     }
 
     pub fn buffer_size(&self) -> wgpu::BufferAddress {
         (self.data.len() * mem::size_of::<R>()) as wgpu::BufferAddress
+    }
+
+    pub fn update(&mut self, queue: &wgpu::Queue, mut f: impl FnMut(&mut [R])) {
+        f(&mut self.data);
+        queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(&self.data));
     }
 }
 
@@ -71,7 +93,7 @@ impl<U: ToRaw<Output = R>, R: Copy + bytemuck::Pod + bytemuck::Zeroable> Buffer<
             label: None,
             mapped_at_creation: false,
         });
-        let raw_buffer = RawBuffer::from_parts(buffer, Vec::new(), usage);
+        let raw_buffer = RawBuffer::from_parts(buffer, Vec::new());
         Self::from_parts(Vec::new(), raw_buffer, usage)
     }
 

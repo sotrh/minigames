@@ -20,6 +20,14 @@ impl Box2 {
         }
     }
 
+    pub fn with_position_size(position: Vec2, size: Vec2) -> Self {
+        let half = size * 0.5;
+        Self {
+            min: position - half,
+            max: position + half,
+        }
+    }
+
     pub fn include_point(&mut self, p: Vec2) -> &mut Self {
         self.min = self.min.min(p);
         self.max = self.max.max(p);
@@ -43,9 +51,9 @@ pub fn intersect_box2_box2(a: &Box2, b: &Box2) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use glam::{Vec2, vec2};
+    use glam::{vec2, Vec2};
 
-    use crate::math::{Box2, intersect_box2_box2};
+    use crate::math::{intersect_box2_box2, Box2};
 
     #[test]
     fn test_include_point() {
@@ -55,7 +63,7 @@ mod tests {
         assert!(!b.contains_point(&p));
 
         b.include_point(p);
-        
+
         assert_eq!(b, Box2::new(vec2(0.0, 0.0), p));
         assert!(b.contains_point(&p));
     }

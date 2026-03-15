@@ -93,6 +93,10 @@ impl DebugPipeline {
         pass.set_bind_group(0, binding.bind_group(), &[]);
         pass.draw(0..self.lines_buffer.data.len() as _, 0..1);
     }
+    
+    pub fn clear(&mut self) {
+        self.lines_buffer.clear();
+    }
 }
 
 pub struct LineBatch<'a> {

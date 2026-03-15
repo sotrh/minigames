@@ -62,6 +62,11 @@ impl<R: Copy + bytemuck::Pod + bytemuck::Zeroable> RawBuffer<R> {
         f(&mut self.data);
         queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(&self.data));
     }
+    
+    /// Marks the buffer as empty. Doesn't zero the wgpu::Buffer
+    pub fn clear(&mut self) {
+        self.data.clear();
+    }
 }
 
 pub struct Buffer<U: ToRaw<Output = R>, R: Copy + bytemuck::Pod + bytemuck::Zeroable> {

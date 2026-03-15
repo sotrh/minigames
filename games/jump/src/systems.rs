@@ -1,27 +1,25 @@
-use framework::{glam::vec2, math::{self, Box2}};
+use framework::{
+    glam::vec2,
+    math::{self, Box2},
+};
 
-use crate::{Camera, data::{Inputs, Platform, Player}};
-
-pub const DEFAULT_GRAVITY: f32 = -200.0;
-pub const BOUNCE_VELOCITY: f32 = 300.0;
-pub const PLAYER_MOVE_SPEED: f32 = 300.0;
+use crate::{
+    Camera,
+    data::{Inputs, Platform, Player},
+};
 
 #[derive(Debug)]
-pub struct PlayerMovementSystem {
-    gravity: f32,
-}
+pub struct PlayerMovementSystem;
 
 impl PlayerMovementSystem {
-
-    pub fn new(gravity: f32) -> Self {
-        Self { gravity }
-    }
-
     pub fn run(&self, dt: f32, inputs: &Inputs, player: &mut Player, camera: &mut Camera) {
         // Instant movement left and right
-        player.velocity.x = (inputs.right - inputs.left) * PLAYER_MOVE_SPEED;
+        player.velocity.x = (inputs.right - inputs.left) * player.stats.move_speed;
 
-        player.velocity += vec2(0.0, self.gravity * dt);
+        // Double gravity when moving down
+        let gravity_mod = if player.velocity.y > 0.0 { 1.0 } else { 2.0 };
+
+        player.velocity += vec2(0.0, player.stats.gravity * gravity_mod * dt);
         player.position += player.velocity * dt;
 
         // For now just lock the camera to the player
@@ -47,7 +45,7 @@ impl PlayerBounceSystem {
 
             if math::intersect_box2_box2(&player_bbox, &pbb) {
                 hits.push(i);
-                
+
                 if max_bounciness < platform.bounciness {
                     max_bounciness = platform.bounciness;
                 }
@@ -55,7 +53,7 @@ impl PlayerBounceSystem {
         }
 
         if !hits.is_empty() {
-            player.velocity.y = BOUNCE_VELOCITY * max_bounciness;
+            player.velocity.y = player.stats.jump_speed * max_bounciness;
         }
 
         for hit in hits.into_iter().rev() {

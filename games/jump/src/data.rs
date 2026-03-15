@@ -6,8 +6,16 @@ pub struct Inputs {
     pub(crate) right: f32,
 }
 
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct PlayerStats {
+    pub(crate) gravity: f32,
+    pub(crate) jump_speed: f32,
+    pub(crate) move_speed: f32,
+}
+
 #[derive(Debug)]
 pub struct Player {
+    pub stats: PlayerStats,
     pub position: Vec2,
     pub size: Vec2,
     pub velocity: Vec2,

@@ -1,12 +1,12 @@
-pub mod prelude;
-pub mod resources;
 mod buffer;
 mod camera;
-mod light;
-mod pipeline;
-mod shader_canvas;
-pub mod math;
 pub mod debug;
+mod light;
+pub mod math;
+mod pipeline;
+pub mod prelude;
+pub mod resources;
+mod shader_canvas;
 
 pub use buffer::*;
 pub use camera::*;
@@ -23,9 +23,9 @@ use std::ops::Deref;
 use std::path::Path;
 use std::sync::Arc;
 
+pub use glam;
 pub use rand;
 pub use wgpu;
-pub use glam;
 pub use winit;
 
 use web_time::{Duration, Instant};
@@ -193,7 +193,11 @@ impl CameraUniform {
         Self { data, buffer }
     }
 
-    pub fn update_view_proj(&mut self, camera: &camera::FpCamera, projection: &camera::PerspectiveProjection) {
+    pub fn update_view_proj(
+        &mut self,
+        camera: &camera::FpCamera,
+        projection: &camera::PerspectiveProjection,
+    ) {
         self.data.view_position = camera.position.extend(1.0);
         self.data.view_proj = projection.calc_matrix() * camera.calc_matrix()
     }
@@ -263,7 +267,10 @@ impl UniformBinding {
 }
 
 pub trait Demo: 'static + Sized + wgpu::WasmNotSend + std::fmt::Debug {
-    fn init(display: &Display, path: &Path) -> impl std::future::Future<Output = anyhow::Result<Self>> + wgpu::WasmNotSend;
+    fn init(
+        display: &Display,
+        path: &Path,
+    ) -> impl std::future::Future<Output = anyhow::Result<Self>> + wgpu::WasmNotSend;
     fn resize(&mut self, display: &Display);
     fn update(&mut self, display: &Display, dt: Duration);
     fn render(&mut self, display: &mut Display);
@@ -299,8 +306,8 @@ impl<D: Demo + 'static> ApplicationHandler<anyhow::Result<(Display, D)>> for App
         #[cfg(target_arch = "wasm32")]
         {
             use wasm_bindgen::JsCast;
-            use winit::platform::web::WindowAttributesExtWebSys;
             use wasm_bindgen_futures::wasm_bindgen::UnwrapThrowExt;
+            use winit::platform::web::WindowAttributesExtWebSys;
 
             const CANVAS_ID: &str = "game";
 

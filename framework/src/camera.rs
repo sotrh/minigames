@@ -260,7 +260,7 @@ impl CameraBinder {
 
         CameraBinding { bind_group, buffer }
     }
-    
+
     pub fn layout(&self) -> &wgpu::BindGroupLayout {
         &self.layout
     }

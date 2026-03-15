@@ -4,6 +4,7 @@ use framework::{
     CameraBinder, CameraBinding,
     debug::{ColoredVertex, DebugPipeline, LineBatch},
     glam::{self, Vec2, vec2, vec3},
+    resources::load_string,
     wgpu,
     winit::keyboard::KeyCode,
 };
@@ -47,17 +48,23 @@ impl framework::Demo for Jump {
             Platform::breakable_platform(vec2(0.0, 100.0)),
         ];
 
+        let player_stats: PlayerStats = {
+            let json = load_string("res/data/jump.json").await?;
+            serde_json::from_str(&json)?
+        };
+
         Ok(Self {
             camera,
             camera_binding,
             debug,
             player: Player {
+                stats: player_stats,
                 position: vec2(0.0, 0.0),
                 velocity: Vec2::ZERO,
                 size: vec2(20.0, 50.0),
             },
             platforms,
-            movement_system: PlayerMovementSystem::new(DEFAULT_GRAVITY),
+            movement_system: PlayerMovementSystem,
             bounce_system: PlayerBounceSystem,
             inputs: Inputs::default(),
         })

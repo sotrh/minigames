@@ -5,6 +5,7 @@ use framework::{
     debug::{ColoredVertex, DebugPipeline, LineBatch},
     glam::{self, Vec2, vec2, vec3},
     wgpu,
+    winit::keyboard::KeyCode,
 };
 
 mod data;
@@ -23,6 +24,7 @@ struct Jump {
     movement_system: PlayerMovementSystem,
     bounce_system: PlayerBounceSystem,
     platforms: Vec<Platform>,
+    inputs: Inputs,
 }
 
 impl framework::Demo for Jump {
@@ -57,6 +59,7 @@ impl framework::Demo for Jump {
             platforms,
             movement_system: PlayerMovementSystem::new(DEFAULT_GRAVITY),
             bounce_system: PlayerBounceSystem,
+            inputs: Inputs::default(),
         })
     }
 
@@ -66,14 +69,29 @@ impl framework::Demo for Jump {
             .update(&self.camera, &self.camera, &display.queue);
     }
 
+    fn handle_keyboard(&mut self, key: KeyCode, pressed: bool) {
+        let f_pressed = if pressed { 1.0 } else { 0.0 };
+        match (key, pressed) {
+            (KeyCode::ArrowLeft | KeyCode::KeyA, _) => {
+                self.inputs.left = f_pressed;
+            }
+            (KeyCode::ArrowRight | KeyCode::KeyD, _) => {
+                self.inputs.right = f_pressed;
+            }
+            _ => {}
+        }
+    }
+
     fn update(&mut self, display: &framework::Display, dt: std::time::Duration) {
         let dt = dt.as_secs_f32();
 
-        self.movement_system.run(dt, &mut self.player, &mut self.camera);
+        self.movement_system
+            .run(dt, &self.inputs, &mut self.player, &mut self.camera);
         self.bounce_system
             .run(&mut self.platforms, &mut self.player);
 
-        self.camera_binding.update(&self.camera, &self.camera, &display.queue);
+        self.camera_binding
+            .update(&self.camera, &self.camera, &display.queue);
     }
 
     fn render(&mut self, display: &mut framework::Display) {

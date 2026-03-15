@@ -1,9 +1,10 @@
 use framework::{glam::vec2, math::{self, Box2}};
 
-use crate::{Camera, data::{Platform, Player}};
+use crate::{Camera, data::{Inputs, Platform, Player}};
 
 pub const DEFAULT_GRAVITY: f32 = -200.0;
 pub const BOUNCE_VELOCITY: f32 = 300.0;
+pub const PLAYER_MOVE_SPEED: f32 = 300.0;
 
 #[derive(Debug)]
 pub struct PlayerMovementSystem {
@@ -16,7 +17,10 @@ impl PlayerMovementSystem {
         Self { gravity }
     }
 
-    pub fn run(&self, dt: f32, player: &mut Player, camera: &mut Camera) {
+    pub fn run(&self, dt: f32, inputs: &Inputs, player: &mut Player, camera: &mut Camera) {
+        // Instant movement left and right
+        player.velocity.x = (inputs.right - inputs.left) * PLAYER_MOVE_SPEED;
+
         player.velocity += vec2(0.0, self.gravity * dt);
         player.position += player.velocity * dt;
 

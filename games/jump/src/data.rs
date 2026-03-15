@@ -1,5 +1,11 @@
 use framework::glam::{Vec2, vec2};
 
+#[derive(Debug, Default)]
+pub struct Inputs {
+    pub(crate) left: f32,
+    pub(crate) right: f32,
+}
+
 #[derive(Debug)]
 pub struct Player {
     pub position: Vec2,

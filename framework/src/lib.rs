@@ -26,6 +26,7 @@ use std::sync::Arc;
 pub use rand;
 pub use wgpu;
 pub use glam;
+pub use winit;
 
 use web_time::{Duration, Instant};
 use wgpu::util::{BufferInitDescriptor, DeviceExt};

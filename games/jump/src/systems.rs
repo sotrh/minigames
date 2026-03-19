@@ -1,6 +1,7 @@
 use framework::{
     glam::vec2,
     math::{self, Box2},
+    rand::{Rng, thread_rng},
 };
 
 use crate::{
@@ -60,6 +61,61 @@ impl PlayerBounceSystem {
             if platforms[hit].breakable {
                 platforms.swap_remove(hit);
             }
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct PlatformSpawnSystem {
+    current_y: f32,
+}
+
+impl PlatformSpawnSystem {
+    const PLATFORM_DISTANCE: f32 = 200.0;
+    const SPAWN_DISTANCE: f32 = Self::PLATFORM_DISTANCE * 10.0;
+    const DESPAWN_DISTANCE: f32 = Self::SPAWN_DISTANCE;
+
+    pub fn new(start_y: f32) -> Self {
+        Self { current_y: start_y }
+    }
+
+    pub fn run(&mut self, player: &Player, platforms: &mut Vec<Platform>) {
+        // Despawn platforms that are to far down
+        let mut to_remove = Vec::new();
+        for (i, platform) in platforms.iter().rev().enumerate() {
+            if self.current_y - platform.position.y > Self::DESPAWN_DISTANCE {
+                to_remove.push(i);
+            }
+        }
+
+        // Spawn new platforms if player is high enough
+        if player.position.y + Self::SPAWN_DISTANCE > self.current_y {
+            let mut rng = thread_rng();
+
+            let num_platforms = rng.gen_range(1..=3);
+
+            let (platform_spacing, platform_offset) = match num_platforms {
+                1 => (0.0, 0.0),
+                2 => (200.0, -100.0),
+                _ => (200.0, -200.0),
+            };
+
+            for i in 0..num_platforms {
+                let x = i as f32 * platform_spacing + platform_offset;
+                let position = vec2(x, self.current_y);
+
+                let r: f32 = rng.r#gen();
+
+                if r < 0.6 {
+                    platforms.push(Platform::simple_platform(position));
+                } else if r < 0.9 {
+                    platforms.push(Platform::breakable_platform(position));
+                } else {
+                    platforms.push(Platform::bouncy_platform(position));
+                }
+            }
+
+            self.current_y += Self::PLATFORM_DISTANCE;
         }
     }
 }

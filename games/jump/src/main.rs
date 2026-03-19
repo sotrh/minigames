@@ -3,7 +3,7 @@ use std::path::Path;
 use framework::{
     CameraBinder, CameraBinding,
     debug::{ColoredVertex, DebugPipeline, LineBatch},
-    glam::{self, Vec2, vec2, vec3},
+    glam::{self, Vec2, Vec3, vec2, vec3},
     resources::load_string,
     wgpu,
     winit::keyboard::KeyCode,
@@ -15,17 +15,23 @@ mod systems;
 use data::*;
 use systems::*;
 
+const RED: Vec3 = Vec3::new(1.0, 0.0, 0.0);
+const CYAN: Vec3 = Vec3::new(0.0, 1.0, 1.0);
+const YELLOW: Vec3 = Vec3::new(1.0, 1.0, 0.0);
+const MAGENTA: Vec3 = Vec3::new(1.0, 0.0, 1.0);
+
 /// A simple jumping game ala Doodle Jump
 #[derive(Debug)]
 struct Jump {
     camera: Camera,
     camera_binding: CameraBinding,
     debug: DebugPipeline,
+    inputs: Inputs,
     player: Player,
     movement_system: PlayerMovementSystem,
     bounce_system: PlayerBounceSystem,
     platforms: Vec<Platform>,
-    inputs: Inputs,
+    platform_spawn_system: PlatformSpawnSystem,
 }
 
 impl framework::Demo for Jump {
@@ -43,10 +49,9 @@ impl framework::Demo for Jump {
         let debug = DebugPipeline::new(display, &camera_binder)?;
 
         // Manually spawn some platforms
-        let platforms = vec![
-            Platform::simple_platform(vec2(0.0, -100.0)),
-            Platform::breakable_platform(vec2(0.0, 100.0)),
-        ];
+        let platforms = vec![Platform::simple_platform(vec2(0.0, -100.0))];
+
+        let platform_spawn_system = PlatformSpawnSystem::new(100.0);
 
         let player_stats: PlayerStats = {
             let json = load_string("res/data/jump.json").await?;
@@ -57,6 +62,7 @@ impl framework::Demo for Jump {
             camera,
             camera_binding,
             debug,
+            inputs: Inputs::default(),
             player: Player {
                 stats: player_stats,
                 position: vec2(0.0, 0.0),
@@ -66,14 +72,14 @@ impl framework::Demo for Jump {
             platforms,
             movement_system: PlayerMovementSystem,
             bounce_system: PlayerBounceSystem,
-            inputs: Inputs::default(),
+            platform_spawn_system,
         })
     }
 
     fn resize(&mut self, display: &framework::Display) {
         self.camera.size = glam::vec2(display.config.width as _, display.config.height as _);
         self.camera_binding
-            .update(&self.camera, &self.camera, &display.queue);
+            .update(&self.camera, &self.camera, &display.device, &display.queue);
     }
 
     fn handle_keyboard(&mut self, key: KeyCode, pressed: bool) {
@@ -96,9 +102,11 @@ impl framework::Demo for Jump {
             .run(dt, &self.inputs, &mut self.player, &mut self.camera);
         self.bounce_system
             .run(&mut self.platforms, &mut self.player);
+        self.platform_spawn_system
+            .run(&self.player, &mut self.platforms);
 
         self.camera_binding
-            .update(&self.camera, &self.camera, &display.queue);
+            .update(&self.camera, &self.camera, &display.device, &display.queue);
     }
 
     fn render(&mut self, display: &mut framework::Display) {
@@ -108,11 +116,21 @@ impl framework::Demo for Jump {
 
         {
             self.debug.clear();
-            let mut batch = self.debug.batch_lines(&display.queue);
-            batch.push_box(self.player.position, self.player.size, vec3(0.0, 1.0, 1.0));
+            let mut batch = self.debug.batch_lines(&display.device, &display.queue);
+            batch.push_box(self.player.position, self.player.size, CYAN);
 
             for platform in &self.platforms {
-                batch.push_box(platform.position, platform.size, vec3(1.0, 0.0, 0.0));
+                batch.push_box(
+                    platform.position,
+                    platform.size,
+                    if platform.bounciness > 1.0 {
+                        MAGENTA
+                    } else if platform.breakable {
+                        RED
+                    } else {
+                        YELLOW
+                    },
+                );
             }
         }
 

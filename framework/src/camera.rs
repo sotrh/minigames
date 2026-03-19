@@ -277,9 +277,10 @@ impl CameraBinding {
         &mut self,
         camera: &impl Camera,
         projection: &impl Projection,
+        device: &wgpu::Device,
         queue: &wgpu::Queue,
     ) {
-        self.buffer.update(queue, |data| {
+        self.buffer.update(device, queue, |data| {
             data[0].view = camera.calc_view();
             data[0].proj = projection.calc_proj();
         });

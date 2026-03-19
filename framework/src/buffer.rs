@@ -58,9 +58,24 @@ impl<R: Copy + bytemuck::Pod + bytemuck::Zeroable> RawBuffer<R> {
         (self.data.len() * mem::size_of::<R>()) as wgpu::BufferAddress
     }
 
-    pub fn update(&mut self, queue: &wgpu::Queue, mut f: impl FnMut(&mut [R])) {
+    pub fn update(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        mut f: impl FnMut(&mut [R]),
+    ) {
         f(&mut self.data);
-        queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(&self.data));
+
+        if self.buffer_size() > self.buffer.size() {
+            let new_buffer = device.create_buffer_init(&BufferInitDescriptor {
+                label: Some(type_name::<Self>()),
+                contents: bytemuck::cast_slice(&self.data),
+                usage: self.buffer.usage(),
+            });
+            self.buffer = new_buffer;
+        } else {
+            queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(&self.data));
+        }
     }
 
     /// Marks the buffer as empty. Doesn't zero the wgpu::Buffer

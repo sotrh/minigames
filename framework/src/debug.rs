@@ -79,9 +79,10 @@ impl DebugPipeline {
         })
     }
 
-    pub fn batch_lines<'a>(&'a mut self, queue: &'a wgpu::Queue) -> LineBatch<'a> {
+    pub fn batch_lines<'a>(&'a mut self, device: &'a wgpu::Device, queue: &'a wgpu::Queue) -> LineBatch<'a> {
         LineBatch {
             pipeline: self,
+            device,
             queue,
             dirty: false,
         }
@@ -101,6 +102,7 @@ impl DebugPipeline {
 
 pub struct LineBatch<'a> {
     pipeline: &'a mut DebugPipeline,
+    device: &'a wgpu::Device,
     queue: &'a wgpu::Queue,
     dirty: bool,
 }
@@ -117,7 +119,7 @@ impl<'a> LineBatch<'a> {
 impl<'a> Drop for LineBatch<'a> {
     fn drop(&mut self) {
         if self.dirty {
-            self.pipeline.lines_buffer.update(&self.queue, |_| {});
+            self.pipeline.lines_buffer.update(&self.device, &self.queue, |_| {});
         }
     }
 }

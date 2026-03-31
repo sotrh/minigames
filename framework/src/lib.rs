@@ -39,6 +39,8 @@ use winit::{
     window::Window,
 };
 
+use crate::resources::sound::SoundSystem;
+
 #[derive(Debug)]
 pub struct Display {
     surface: wgpu::Surface<'static>,
@@ -52,10 +54,7 @@ pub struct Display {
 impl Display {
     pub async fn new(window: Arc<Window>) -> anyhow::Result<Display> {
         let size = window.inner_size();
-        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
-            backends: wgpu::Backends::PRIMARY,
-            ..Default::default()
-        });
+        let instance = wgpu::Instance::default();
         let surface = instance.create_surface(window.clone()).unwrap();
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
@@ -289,12 +288,12 @@ pub struct App<D: Demo> {
 }
 
 impl<D: Demo + 'static> App<D> {
-    pub fn new(event_loop: &EventLoop<anyhow::Result<(Display, D)>>) -> Self {
-        Self {
+    pub fn new(event_loop: &EventLoop<anyhow::Result<(Display, D)>>) -> anyhow::Result<Self> {
+        Ok(Self {
             demo: None,
             proxy: Some(event_loop.create_proxy()),
             last_time: Instant::now(),
-        }
+        })
     }
 }
 
@@ -452,7 +451,7 @@ pub fn run<D: Demo>() -> anyhow::Result<()> {
     log::info!("run");
 
     let event_loop = EventLoop::with_user_event().build()?;
-    let mut app = App::<D>::new(&event_loop);
+    let mut app = App::<D>::new(&event_loop)?;
     event_loop.run_app(&mut app)?;
 
     Ok(())

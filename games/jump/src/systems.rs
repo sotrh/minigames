@@ -1,7 +1,10 @@
+use std::path::Path;
+
 use framework::{
     glam::vec2,
     math::{self, Box2},
-    rand::{Rng, thread_rng},
+    rand::{self, Rng, random, thread_rng},
+    resources::sound::{SoundOptions, SoundSystem},
 };
 
 use crate::{
@@ -29,10 +32,27 @@ impl PlayerMovementSystem {
 }
 
 #[derive(Debug)]
-pub struct PlayerBounceSystem;
+pub struct PlayerBounceSystem {
+    high_jump: framework::resources::sound::TrackId,
+    jump: framework::resources::sound::TrackId,
+}
 
 impl PlayerBounceSystem {
-    pub fn run(&self, platforms: &mut Vec<Platform>, player: &mut Player) {
+    pub async fn new(sound_system: &mut SoundSystem, res_dir: &Path) -> anyhow::Result<Self> {
+        let high_jump = sound_system
+            .load(res_dir.join("sound/high-jump.mp3"))
+            .await?;
+        let jump = sound_system.load(res_dir.join("sound/jump.mp3")).await?;
+
+        Ok(Self { high_jump, jump })
+    }
+
+    pub fn run(
+        &self,
+        sound_system: &mut SoundSystem,
+        platforms: &mut Vec<Platform>,
+        player: &mut Player,
+    ) {
         if player.velocity.y > 0.0 {
             return;
         }
@@ -55,6 +75,14 @@ impl PlayerBounceSystem {
 
         if !hits.is_empty() {
             player.velocity.y = player.stats.jump_speed * max_bounciness;
+
+            let mut rng = thread_rng();
+            let pitch_shift = rng.gen_range(-0.1..=0.1);
+            if max_bounciness > 1.0 {
+                sound_system.play(self.high_jump, SoundOptions { pitch_shift });
+            } else {
+                sound_system.play(self.jump, SoundOptions { pitch_shift });
+            }
         }
 
         for hit in hits.into_iter().rev() {

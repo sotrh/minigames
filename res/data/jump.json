@@ -1,5 +1,6 @@
 {
-    "gravity": -200.0,
-    "jump_speed": 300.0,
-    "move_speed": 300.0
+    "gravity": -400.0,
+    "jump_speed": 450.0,
+    "move_speed": 300.0,
+    "bounce_modifier": 1.5
 }

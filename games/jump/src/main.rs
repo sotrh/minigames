@@ -4,7 +4,7 @@ use framework::{
     CameraBinder, CameraBinding,
     debug::{ColoredVertex, DebugPipeline, LineBatch},
     glam::{self, Vec2, Vec3, vec2, vec3},
-    resources::load_string,
+    resources::{load_string, sound::SoundSystem},
     wgpu,
     winit::keyboard::KeyCode,
 };
@@ -21,7 +21,6 @@ const YELLOW: Vec3 = Vec3::new(1.0, 1.0, 0.0);
 const MAGENTA: Vec3 = Vec3::new(1.0, 0.0, 1.0);
 
 /// A simple jumping game ala Doodle Jump
-#[derive(Debug)]
 struct Jump {
     camera: Camera,
     camera_binding: CameraBinding,
@@ -32,10 +31,19 @@ struct Jump {
     bounce_system: PlayerBounceSystem,
     platforms: Vec<Platform>,
     platform_spawn_system: PlatformSpawnSystem,
+    sound_system: SoundSystem,
+}
+
+impl std::fmt::Debug for Jump {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Jump { ... }").finish()
+    }
 }
 
 impl framework::Demo for Jump {
-    async fn init(display: &framework::Display, _res_dir: &Path) -> anyhow::Result<Self> {
+    async fn init(display: &framework::Display, res_dir: &Path) -> anyhow::Result<Self> {
+        let mut sound_system = SoundSystem::new()?;
+
         let device = &display.device;
 
         let camera = Camera {
@@ -58,6 +66,8 @@ impl framework::Demo for Jump {
             serde_json::from_str(&json)?
         };
 
+        let bounce_system = PlayerBounceSystem::new(&mut sound_system, res_dir).await?;
+
         Ok(Self {
             camera,
             camera_binding,
@@ -71,8 +81,9 @@ impl framework::Demo for Jump {
             },
             platforms,
             movement_system: PlayerMovementSystem,
-            bounce_system: PlayerBounceSystem,
+            bounce_system,
             platform_spawn_system,
+            sound_system,
         })
     }
 
@@ -96,12 +107,14 @@ impl framework::Demo for Jump {
     }
 
     fn update(&mut self, display: &framework::Display, dt: std::time::Duration) {
+        self.sound_system.run();
+        
         let dt = dt.as_secs_f32();
 
         self.movement_system
             .run(dt, &self.inputs, &mut self.player, &mut self.camera);
         self.bounce_system
-            .run(&mut self.platforms, &mut self.player);
+            .run(&mut self.sound_system, &mut self.platforms, &mut self.player);
         self.platform_spawn_system
             .run(&self.player, &mut self.platforms);
 
@@ -110,7 +123,18 @@ impl framework::Demo for Jump {
     }
 
     fn render(&mut self, display: &mut framework::Display) {
-        let frame = display.surface().get_current_texture().unwrap();
+        let frame = match display.surface().get_current_texture() {
+            wgpu::CurrentSurfaceTexture::Success(surface_texture) => surface_texture,
+            wgpu::CurrentSurfaceTexture::Suboptimal(surface_texture) => {
+                display.configure();
+                surface_texture
+            }
+            wgpu::CurrentSurfaceTexture::Timeout
+            | wgpu::CurrentSurfaceTexture::Occluded
+            | wgpu::CurrentSurfaceTexture::Validation
+            | wgpu::CurrentSurfaceTexture::Outdated => return,
+            wgpu::CurrentSurfaceTexture::Lost => panic!("Surface lost!"),
+        };
 
         let view = frame.texture.create_view(&Default::default());
 

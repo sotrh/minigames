@@ -32,7 +32,7 @@ impl DebugPipeline {
 
         let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("lines_pipeline::layout"),
-            bind_group_layouts: &[camera_binder.layout()],
+            bind_group_layouts: &[Some(camera_binder.layout())],
             immediate_size: 0,
         });
 

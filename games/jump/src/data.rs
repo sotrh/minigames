@@ -2,15 +2,16 @@ use framework::glam::{Vec2, vec2};
 
 #[derive(Debug, Default)]
 pub struct Inputs {
-    pub(crate) left: f32,
-    pub(crate) right: f32,
+    pub left: f32,
+    pub right: f32,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct PlayerStats {
-    pub(crate) gravity: f32,
-    pub(crate) jump_speed: f32,
-    pub(crate) move_speed: f32,
+    pub gravity: f32,
+    pub jump_speed: f32,
+    pub move_speed: f32,
+    pub bounce_modifier: f32,
 }
 
 #[derive(Debug)]
@@ -41,7 +42,7 @@ impl Platform {
 
     pub fn bouncy_platform(position: Vec2) -> Self {
         Self {
-            bounciness: 2.0,
+            bounciness: 1.6,
             ..Self::simple_platform(position)
         }
     }

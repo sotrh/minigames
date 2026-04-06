@@ -3,7 +3,7 @@ use std::path::Path;
 use framework::{
     glam::vec2,
     math::{self, Box2},
-    rand::{self, Rng, random, thread_rng},
+    rand::{Rng, thread_rng},
     resources::sound::{SoundOptions, SoundSystem},
 };
 

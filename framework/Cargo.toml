@@ -15,6 +15,8 @@ anyhow.workspace = true
 glam.workspace = true
 winit.workspace = true
 web-time.workspace = true
+serde.workspace = true
+serde_json.workspace = true
 
 thiserror = "1.0"
 bytemuck = { version = "1.24", features = [ "derive" ] }

@@ -10,6 +10,7 @@ use crate::MaterialBinder;
 pub mod model;
 pub mod texture;
 pub mod sound;
+pub mod sprite;
 
 #[cfg(target_arch = "wasm32")]
 fn format_url(path: impl AsRef<Path>) -> reqwest::Url {

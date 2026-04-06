@@ -1,10 +1,15 @@
 use std::path::Path;
 
+use anyhow::Context;
 use framework::{
     CameraBinder, CameraBinding,
     debug::{ColoredVertex, DebugPipeline, LineBatch},
-    glam::{self, Vec2, Vec3, vec2, vec3},
-    resources::{load_string, sound::SoundSystem},
+    glam::{self, Vec2, Vec3, vec2},
+    resources::{
+        load_string,
+        sound::SoundSystem,
+        sprite::SpritePipeline,
+    },
     wgpu,
     winit::keyboard::KeyCode,
 };
@@ -32,6 +37,12 @@ struct Jump {
     platforms: Vec<Platform>,
     platform_spawn_system: PlatformSpawnSystem,
     sound_system: SoundSystem,
+    sprite_pipeline: SpritePipeline,
+    red_platform: framework::resources::sprite::SpriteId,
+    yellow_platform: framework::resources::sprite::SpriteId,
+    purple_platform: framework::resources::sprite::SpriteId,
+    sprite_map: framework::resources::sprite::SpriteMapId,
+    render_debug: bool,
 }
 
 impl std::fmt::Debug for Jump {
@@ -53,6 +64,29 @@ impl framework::Demo for Jump {
 
         let camera_binder = CameraBinder::new(device);
         let camera_binding = camera_binder.bind(device, &camera, &camera);
+
+        let mut sprite_pipeline =
+            SpritePipeline::new(&display.device, &camera_binder, display.config.format);
+
+        let sprite_map = sprite_pipeline
+            .load_sprite_map(
+                &display.device,
+                &display.queue,
+                res_dir.join("sprites/jump.json"),
+            )
+            .await?;
+
+        let map = sprite_pipeline.get_map(sprite_map).unwrap();
+
+        let red_platform = map
+            .find_id_by_name("red_platform")
+            .context("No red_platform")?;
+        let purple_platform = map
+            .find_id_by_name("purple_platform")
+            .context("No purple_platform")?;
+        let yellow_platform = map
+            .find_id_by_name("yellow_platform")
+            .context("No yellow_platform")?;
 
         let debug = DebugPipeline::new(display, &camera_binder)?;
 
@@ -84,6 +118,12 @@ impl framework::Demo for Jump {
             bounce_system,
             platform_spawn_system,
             sound_system,
+            sprite_pipeline,
+            sprite_map,
+            red_platform,
+            yellow_platform,
+            purple_platform,
+            render_debug: false,
         })
     }
 
@@ -108,13 +148,16 @@ impl framework::Demo for Jump {
 
     fn update(&mut self, display: &framework::Display, dt: std::time::Duration) {
         self.sound_system.run();
-        
+
         let dt = dt.as_secs_f32();
 
         self.movement_system
             .run(dt, &self.inputs, &mut self.player, &mut self.camera);
-        self.bounce_system
-            .run(&mut self.sound_system, &mut self.platforms, &mut self.player);
+        self.bounce_system.run(
+            &mut self.sound_system,
+            &mut self.platforms,
+            &mut self.player,
+        );
         self.platform_spawn_system
             .run(&self.player, &mut self.platforms);
 
@@ -143,18 +186,38 @@ impl framework::Demo for Jump {
             let mut batch = self.debug.batch_lines(&display.device, &display.queue);
             batch.push_box(self.player.position, self.player.size, CYAN);
 
+            // TODO: expand this when player sprite is done
+            if self.render_debug {
+                for platform in &self.platforms {
+                    batch.push_box(
+                        platform.position,
+                        platform.size,
+                        if platform.bounciness > 1.0 {
+                            MAGENTA
+                        } else if platform.breakable {
+                            RED
+                        } else {
+                            YELLOW
+                        },
+                    );
+                }
+            }
+        }
+
+        if let Some(mut batch) =
+            self.sprite_pipeline
+                .batch(&display.device, &display.queue, self.sprite_map)
+        {
             for platform in &self.platforms {
-                batch.push_box(
-                    platform.position,
-                    platform.size,
-                    if platform.bounciness > 1.0 {
-                        MAGENTA
-                    } else if platform.breakable {
-                        RED
-                    } else {
-                        YELLOW
-                    },
-                );
+                let id = if platform.breakable {
+                    self.red_platform
+                } else if platform.bounciness > 1.0 {
+                    self.purple_platform
+                } else {
+                    self.yellow_platform
+                };
+
+                batch.draw_sprite(id, platform.position);
             }
         }
 
@@ -182,6 +245,8 @@ impl framework::Demo for Jump {
                 occlusion_query_set: None,
                 multiview_mask: None,
             });
+
+            self.sprite_pipeline.draw_sprites(self.sprite_map, &mut pass, &self.camera_binding);
 
             self.debug.draw_lines(&mut pass, &self.camera_binding);
         }

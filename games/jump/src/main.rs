@@ -5,11 +5,7 @@ use framework::{
     CameraBinder, CameraBinding,
     debug::{ColoredVertex, DebugPipeline, LineBatch},
     glam::{self, Vec2, Vec3, vec2},
-    resources::{
-        load_string,
-        sound::SoundSystem,
-        sprite::SpritePipeline,
-    },
+    resources::{load_string, sound::SoundSystem, sprite::SpritePipeline},
     wgpu,
     winit::keyboard::KeyCode,
 };
@@ -24,6 +20,11 @@ const RED: Vec3 = Vec3::new(1.0, 0.0, 0.0);
 const CYAN: Vec3 = Vec3::new(0.0, 1.0, 1.0);
 const YELLOW: Vec3 = Vec3::new(1.0, 1.0, 0.0);
 const MAGENTA: Vec3 = Vec3::new(1.0, 0.0, 1.0);
+
+enum Event {
+    Quit,
+    StartGame,
+}
 
 /// A simple jumping game ala Doodle Jump
 struct Jump {
@@ -43,6 +44,19 @@ struct Jump {
     purple_platform: framework::resources::sprite::SpriteId,
     sprite_map: framework::resources::sprite::SpriteMapId,
     render_debug: bool,
+    player_sprite: framework::resources::sprite::SpriteId,
+    events: Vec<Event>,
+}
+
+impl Jump {
+    pub fn start_game(&mut self) {
+        self.player.position = vec2(0.0, 0.0);
+        self.camera.position = self.player.position;
+        self.platforms.clear();
+        self.platforms
+            .push(Platform::simple_platform(vec2(0.0, -100.0)));
+        self.platform_spawn_system.reset();
+    }
 }
 
 impl std::fmt::Debug for Jump {
@@ -59,7 +73,10 @@ impl framework::Demo for Jump {
 
         let camera = Camera {
             position: glam::vec2(0.0, 0.0),
-            size: glam::vec2(display.config.width as f32, display.config.height as f32),
+            size: glam::vec2(
+                (display.config.width / 2) as f32,
+                (display.config.height / 2) as f32,
+            ),
         };
 
         let camera_binder = CameraBinder::new(device);
@@ -78,6 +95,7 @@ impl framework::Demo for Jump {
 
         let map = sprite_pipeline.get_map(sprite_map).unwrap();
 
+        let player_sprite = map.find_id_by_name("player").context("No player sprite")?;
         let red_platform = map
             .find_id_by_name("red_platform")
             .context("No red_platform")?;
@@ -91,7 +109,7 @@ impl framework::Demo for Jump {
         let debug = DebugPipeline::new(display, &camera_binder)?;
 
         // Manually spawn some platforms
-        let platforms = vec![Platform::simple_platform(vec2(0.0, -100.0))];
+        let platforms = vec![];
 
         let platform_spawn_system = PlatformSpawnSystem::new(100.0);
 
@@ -111,7 +129,7 @@ impl framework::Demo for Jump {
                 stats: player_stats,
                 position: vec2(0.0, 0.0),
                 velocity: Vec2::ZERO,
-                size: vec2(20.0, 50.0),
+                size: vec2(13.0, 17.0),
             },
             platforms,
             movement_system: PlayerMovementSystem,
@@ -123,12 +141,17 @@ impl framework::Demo for Jump {
             red_platform,
             yellow_platform,
             purple_platform,
+            player_sprite,
             render_debug: false,
+            events: vec![Event::StartGame],
         })
     }
 
     fn resize(&mut self, display: &framework::Display) {
-        self.camera.size = glam::vec2(display.config.width as _, display.config.height as _);
+        self.camera.size = glam::vec2(
+            (display.config.width / 2) as _,
+            (display.config.height / 2) as _,
+        );
         self.camera_binding
             .update(&self.camera, &self.camera, &display.device, &display.queue);
     }
@@ -136,6 +159,12 @@ impl framework::Demo for Jump {
     fn handle_keyboard(&mut self, key: KeyCode, pressed: bool) {
         let f_pressed = if pressed { 1.0 } else { 0.0 };
         match (key, pressed) {
+            (KeyCode::Escape, true) => {
+                self.events.push(Event::Quit);
+            }
+            (KeyCode::Enter, true) => {
+                self.events.push(Event::StartGame);
+            }
             (KeyCode::ArrowLeft | KeyCode::KeyA, _) => {
                 self.inputs.left = f_pressed;
             }
@@ -147,6 +176,22 @@ impl framework::Demo for Jump {
     }
 
     fn update(&mut self, display: &framework::Display, dt: std::time::Duration) {
+        let mut should_start_game = false;
+        for event in self.events.drain(..) {
+            match event {
+                Event::Quit => {
+                    display.exit();
+                }
+                Event::StartGame => {
+                    should_start_game = true;
+                }
+            }
+        }
+
+        if should_start_game {
+            self.start_game();
+        }
+
         self.sound_system.run();
 
         let dt = dt.as_secs_f32();
@@ -219,6 +264,8 @@ impl framework::Demo for Jump {
 
                 batch.draw_sprite(id, platform.position);
             }
+
+            batch.draw_sprite(self.player_sprite, self.player.position);
         }
 
         let mut encoder = display.create_command_encoder(&Default::default());
@@ -246,7 +293,8 @@ impl framework::Demo for Jump {
                 multiview_mask: None,
             });
 
-            self.sprite_pipeline.draw_sprites(self.sprite_map, &mut pass, &self.camera_binding);
+            self.sprite_pipeline
+                .draw_sprites(self.sprite_map, &mut pass, &self.camera_binding);
 
             self.debug.draw_lines(&mut pass, &self.camera_binding);
         }

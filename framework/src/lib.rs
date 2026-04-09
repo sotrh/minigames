@@ -1,20 +1,13 @@
 mod buffer;
 mod camera;
 pub mod debug;
-mod light;
 pub mod math;
-mod pipeline;
-pub mod prelude;
 pub mod resources;
-mod shader_canvas;
 
 pub use buffer::*;
 pub use camera::*;
-pub use light::*;
-pub use pipeline::*;
 pub use resources::model::*;
 pub use resources::texture::*;
-pub use shader_canvas::*;
 
 #[cfg(not(target_arch = "wasm32"))]
 use pollster::FutureExt;
@@ -22,6 +15,8 @@ use pollster::FutureExt;
 use std::ops::Deref;
 use std::path::Path;
 use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering;
 
 pub use glam;
 pub use rand;
@@ -39,8 +34,6 @@ use winit::{
     window::Window,
 };
 
-use crate::resources::sound::SoundSystem;
-
 #[derive(Debug)]
 pub struct Display {
     surface: wgpu::Surface<'static>,
@@ -49,6 +42,7 @@ pub struct Display {
     pub config: wgpu::SurfaceConfiguration,
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
+    is_running: AtomicBool,
 }
 
 impl Display {
@@ -107,6 +101,7 @@ impl Display {
             config,
             device,
             queue,
+            is_running: AtomicBool::new(true),
         })
     }
 
@@ -136,12 +131,20 @@ impl Display {
         self.is_surface_configured
     }
 
+    pub fn is_running(&self) -> bool {
+        self.is_running.load(Ordering::Relaxed)
+    }
+
     pub fn width(&self) -> u32 {
         self.window.inner_size().width
     }
 
     pub fn height(&self) -> u32 {
         self.window.inner_size().height
+    }
+    
+    pub fn exit(&self) {
+        self.is_running.store(false, Ordering::Release);
     }
 }
 
@@ -432,6 +435,12 @@ impl<D: Demo + 'static> ApplicationHandler<anyhow::Result<(Display, D)>> for App
             }
         } else {
             return;
+        }
+    }
+
+    fn about_to_wait(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
+        if let Some(demo) = &self.demo && !demo.0.is_running() {
+            event_loop.exit();
         }
     }
 }

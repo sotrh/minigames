@@ -2,7 +2,7 @@
 name = "framework"
 version = "0.1.0"
 authors = ["Ben Hansen <https://github.com/sotrh>"]
-edition = "2018"
+edition = "2024"
 
 [dependencies]
 env_logger.workspace = true

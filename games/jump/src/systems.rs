@@ -27,7 +27,10 @@ impl PlayerMovementSystem {
         player.position += player.velocity * dt;
 
         // For now just lock the camera to the player
-        camera.position = player.position;
+        // camera.position = player.position.floor();
+        if camera.position.y < player.position.y {
+            camera.position.y = player.position.y.floor();
+        }
     }
 }
 
@@ -96,6 +99,7 @@ impl PlayerBounceSystem {
 #[derive(Debug)]
 pub struct PlatformSpawnSystem {
     current_y: f32,
+    start_y: f32,
 }
 
 impl PlatformSpawnSystem {
@@ -104,7 +108,11 @@ impl PlatformSpawnSystem {
     const DESPAWN_DISTANCE: f32 = Self::SPAWN_DISTANCE;
 
     pub fn new(start_y: f32) -> Self {
-        Self { current_y: start_y }
+        Self { current_y: start_y, start_y }
+    }
+
+    pub fn reset(&mut self) {
+        self.current_y = self.start_y;
     }
 
     pub fn run(&mut self, player: &Player, platforms: &mut Vec<Platform>) {

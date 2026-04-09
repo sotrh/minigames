@@ -1,0 +1,29 @@
+[
+    {
+        "name": "skeleton",
+        "sprite": "skeleton",
+        "hp": 5,
+        "speed": 10,
+        "resistances": ["slash"],
+        "weaknesses": ["blunt"],
+        "attacks": ["swipe"]
+    },
+    {
+        "name": "zombie",
+        "sprite": "zombie",
+        "hp": 10,
+        "speed": 5,
+        "on_burn": "spawn_skeleton",
+        "resistances": ["blunt"],
+        "weaknesses": ["slash", "burn"],
+        "attacks": ["swipe"]
+    },
+    {
+        "name": "bat",
+        "sprite": "bat",
+        "hp": 3,
+        "speed": 10,
+        "weaknesses": ["lightning"],
+        "attacks": ["dive_bomb"]
+    }
+]

@@ -4,8 +4,9 @@
   "texture": "jump-sprites.png",
   "dimensions": [128, 128],
   "sprites": [
-    { "name": "purple_platform", "min": [0, 0], "max": [100, 10] },
-    { "name": "yellow_platform", "min": [0, 10], "max": [100, 20] },
-    { "name": "red_platform", "min": [0, 20], "max": [100, 30] }
+    { "name": "purple_platform", "min": [0, 0], "max": [100, 9] },
+    { "name": "yellow_platform", "min": [0, 10], "max": [100, 19] },
+    { "name": "red_platform", "min": [0, 20], "max": [100, 29] },
+    { "name": "player", "min": [3, 29], "max": [16,46]}
   ]
 }

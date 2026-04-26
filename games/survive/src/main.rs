@@ -3,15 +3,24 @@ use std::path::Path;
 use anyhow::{Context, Ok};
 use framework::{glam, resources::load_string};
 
-use crate::render::RenderController;
+use crate::{render::RenderController, world::World};
 
+mod level;
 mod render;
+mod world;
 
 struct Survive {
     render: RenderController,
     camera: Camera,
     camera_id: render::CameraId,
     player_sprite: framework::resources::sprite::SpriteId,
+    world: World,
+}
+
+impl Survive {
+    pub fn load_level(&mut self, path: impl AsRef<Path>) {
+        self.world.clear();
+    }
 }
 
 impl std::fmt::Debug for Survive {
@@ -39,7 +48,13 @@ impl framework::Demo for Survive {
 
         let player_sprite = render.get_sprite("player").context("No player sprite")?;
 
-        Ok(Self { render, camera, camera_id, player_sprite })
+        Ok(Self {
+            render,
+            camera,
+            camera_id,
+            player_sprite,
+            world: World::new(),
+        })
     }
 
     fn resize(&mut self, display: &framework::Display) {
@@ -47,15 +62,15 @@ impl framework::Demo for Survive {
             (display.config.width / 2) as _,
             (display.config.height / 2) as _,
         );
-        self.render.update_camera(display, self.camera_id, &self.camera, &self.camera);
+        self.render
+            .update_camera(display, self.camera_id, &self.camera, &self.camera);
     }
 
-    fn update(&mut self, display: &framework::Display, dt: std::time::Duration) {
-        
-    }
+    fn update(&mut self, display: &framework::Display, dt: std::time::Duration) {}
 
     fn render(&mut self, display: &mut framework::Display) {
-        self.render.draw_sprite(self.player_sprite, glam::vec2(0.0, 0.0));
+        self.render
+            .draw_sprite(self.player_sprite, glam::vec2(0.0, 0.0));
         self.render.flush(display, self.camera_id);
     }
 }
